@@ -1,7 +1,7 @@
 ---
 title: Incident Response OpenEnv
 emoji: "🚨"
-colorFrom: orange
+colorFrom: yellow
 colorTo: red
 sdk: docker
 pinned: false
