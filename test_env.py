@@ -1,6 +1,7 @@
-from app.env import IncidentEnv
+from models import IncidentAction
+from server.incident_response_environment import IncidentResponseEnvironment
 
-env = IncidentEnv()
+env = IncidentResponseEnvironment()
 
 for episode in range(3):
     state = env.reset()
@@ -9,12 +10,12 @@ for episode in range(3):
     print(f"\n=== Episode {episode} ===")
 
     for step in range(6):
-        if step < 2:
-            action = "check_logs"
-        else:
-            action = "fix_bug"
+        action = "check_logs" if step < 2 else "fix_bug"
 
-        state, reward, done, info = env.step(action)
+        state = env.step(IncidentAction(action=action))
+        reward = float(state.reward or 0.0)
+        done = state.done
+        info = state.metadata
 
         print(f"Step {step}")
         print("Action:", action)
