@@ -1,7 +1,10 @@
 from fastapi import FastAPI, HTTPException, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from typing import Literal
+import os
 
 import environment as env
 
@@ -22,6 +25,18 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Serve the React dashboard as static files
+_DASHBOARD = os.path.join(os.path.dirname(__file__), "dashboard")
+if os.path.isdir(_DASHBOARD):
+    app.mount("/dashboard", StaticFiles(directory=_DASHBOARD), name="dashboard")
+
+@app.get("/", include_in_schema=False)
+def serve_frontend():
+    index = os.path.join(_DASHBOARD, "index.html")
+    if os.path.isfile(index):
+        return FileResponse(index, media_type="text/html")
+    return {"detail": "Dashboard not found. See /docs for API."}
 
 # ---------------------------------------------------------------------------
 # Schemas
