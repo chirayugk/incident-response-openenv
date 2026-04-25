@@ -1,5 +1,5 @@
 ---
-title: Incident Response OpenEnv
+title: Multi-Agent Incident Response OpenEnv
 emoji: "🚨"
 colorFrom: yellow
 colorTo: red
@@ -12,12 +12,18 @@ tags:
   - simulation
 ---
 
-# Incident Response OpenEnv
+# Multi-Agent Incident Response OpenEnv
 
-This project packages a small incident-response environment as a real OpenEnv environment backed by the official `openenv-core` runtime.
+This project packages a multi-agent incident-response environment as a real OpenEnv environment backed by the official `openenv-core` runtime.
 
-The environment starts with timeout logs, introduces a schema drift on step three, and rewards agents that inspect the logs before resolving the issue efficiently.
+The environment runs three cooperating roles:
+- **Manager Agent**: prioritizes and assigns work.
+- **Monitor Agent**: scans logs continuously, detects incidents, and reports findings.
+- **Engineer Agent**: inspects code, implements fixes, and validates completion.
 
+The environment introduces schema drift mid-episode and uses strict anti-hallucination penalties.
+Rewards are always clamped to `[0.0, 1.0]` and tracked per agent.
+ 
 ## OpenEnv Integration
 
 - Runtime package: `openenv-core==0.2.3` (latest PyPI release on March 28, 2026)
@@ -25,7 +31,9 @@ The environment starts with timeout logs, introduces a schema drift on step thre
 - HTTP app wrapper: `openenv.core.env_server.create_app(...)`
 - Typed client: [`client.py`](</c:/Users/sharm/Desktop/finale/client.py>)
 
-The Docker image enables `ENABLE_WEB_INTERFACE=true`, so the Space root redirects to OpenEnv's built-in `/web/` interface.
+UI endpoints:
+- `/ops-center` -> custom incident command-center landing page.
+- `/web/` -> OpenEnv interactive web UI.
 
 ## Published links
 
@@ -41,9 +49,19 @@ with IncidentResponseEnv(
     base_url="https://arzunn-incident-response-openenv.hf.space"
 ).sync() as env:
     reset_result = env.reset()
-    step_result = env.step(IncidentAction(action="check_logs"))
-    print(reset_result.observation.logs)
-    print(step_result.reward, step_result.observation.done)
+    obs = reset_result.observation
+    role = obs.turn_agent
+
+    # Example role-aware action
+    step_result = env.step(
+        IncidentAction(
+            agent=role,
+            action="triage_backlog" if role == "manager" else "scan_logs",
+            note="starter move",
+        )
+    )
+    print(step_result.observation.team_rewards)
+    print(step_result.observation.metadata["hallucination_count"])
 ```
 
 ## Local run
@@ -55,4 +73,6 @@ uvicorn server.app:app --host 0.0.0.0 --port 7860 --reload
 
 In PowerShell, enable the OpenEnv web UI first with `$env:ENABLE_WEB_INTERFACE = "true"`.
 
-Open `http://localhost:7860` and it will redirect to the OpenEnv web UI.
+Open:
+- `http://localhost:7860/ops-center` for the custom dashboard UI.
+- `http://localhost:7860/web/` for OpenEnv interaction.
